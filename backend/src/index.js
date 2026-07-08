@@ -7,6 +7,7 @@ import rateLimit from 'express-rate-limit';
 import path from 'path';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
+import { fileURLToPath } from 'url';
 
 import { connectMongoDB } from './db/mongodb.js';
 import prisma from './db/prisma.js';
@@ -95,12 +96,19 @@ app.use('/api/chats', chatRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Root greeting
-app.get('/', (req, res) => {
-  res.json({
-    message: 'Month 2 Full-Stack Integration API is active and running',
-    version: '1.0.0',
-  });
+// Serve static client assets in production
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const clientDistPath = path.join(__dirname, '../../frontend/dist');
+
+app.use(express.static(clientDistPath));
+
+// Fallback all SPA routes to index.html (excluding /api)
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+    return next();
+  }
+  res.sendFile(path.join(clientDistPath, 'index.html'));
 });
 
 // Centralized error handling

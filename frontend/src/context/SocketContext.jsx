@@ -19,8 +19,12 @@ export const SocketProvider = ({ children }) => {
       return;
     }
 
+    const socketUrl = window.location.hostname === 'localhost'
+      ? 'http://localhost:5000'
+      : window.location.origin;
+
     // Connect to WebSocket server with token authentication
-    const newSocket = io('http://localhost:5000', {
+    const newSocket = io(socketUrl, {
       auth: { token },
     });
 

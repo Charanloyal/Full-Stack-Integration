@@ -100,7 +100,7 @@ export default function ChatWindow() {
                   {/* User Avatar */}
                   {msg.senderAvatarUrl ? (
                     <img
-                      src={`http://localhost:5000${msg.senderAvatarUrl}`}
+                      src={window.location.hostname === 'localhost' ? `http://localhost:5000${msg.senderAvatarUrl}` : msg.senderAvatarUrl}
                       alt={msg.senderName}
                       style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', marginTop: '4px' }}
                     />
@@ -182,7 +182,7 @@ export default function ChatWindow() {
               <div style={{ position: 'relative' }}>
                 {u.avatarUrl ? (
                   <img
-                    src={`http://localhost:5000${u.avatarUrl}`}
+                    src={window.location.hostname === 'localhost' ? `http://localhost:5000${u.avatarUrl}` : u.avatarUrl}
                     alt={u.name}
                     style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }}
                   />

@@ -157,7 +157,7 @@ function AppContent() {
             <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{user.role}</span>
           </div>
           {user.avatarUrl ? (
-            <img src={`http://localhost:5000${user.avatarUrl}`} alt={user.name} style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)' }} />
+            <img src={window.location.hostname === 'localhost' ? `http://localhost:5000${user.avatarUrl}` : user.avatarUrl} alt={user.name} style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)' }} />
           ) : (
             <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 'bold' }}>
               {user.name.charAt(0)}

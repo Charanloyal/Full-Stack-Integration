@@ -92,6 +92,15 @@ month2-fullstack-integration/
 
 ---
 
+## ☁️ Zero-Setup One-Click Cloud Deployment (Render)
+You can deploy this entire full-stack project online for free with **zero configuration**:
+1. Log in to your **[Render.com](https://render.com/)** dashboard.
+2. Click **New +** ➔ **Blueprint**.
+3. Connect your GitHub repository: `Full-Stack-Integration`.
+4. Render will read the `render.yaml` blueprint, install dependencies, compile the React frontend, generate the Prisma Client, run the SQLite migrations, configure the in-memory MongoDB Server, and deploy your live full-stack application!
+
+---
+
 ## 🐳 Optional Production Setup (PostgreSQL & MongoDB in Docker)
 If you wish to switch from the development zero-setup databases (SQLite & in-memory Mongo) to production-ready database engines:
 1. Open the Docker Desktop application.

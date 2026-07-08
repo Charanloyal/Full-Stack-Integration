@@ -116,7 +116,7 @@ export default function KanbanBoard() {
       const data = await response.json();
       if (response.ok && data.status === 'success') {
         // Save relative path or complete host URL
-        setAttachmentUrl(`http://localhost:5000${data.fileUrl}`);
+        setAttachmentUrl(window.location.hostname === 'localhost' ? `http://localhost:5000${data.fileUrl}` : data.fileUrl);
       } else {
         alert(data.message || 'File upload failed');
       }
@@ -268,7 +268,7 @@ export default function KanbanBoard() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           {task.user.avatarUrl ? (
-                            <img src={`http://localhost:5000${task.user.avatarUrl}`} alt={task.user.name} style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover' }} />
+                            <img src={window.location.hostname === 'localhost' ? `http://localhost:5000${task.user.avatarUrl}` : task.user.avatarUrl} alt={task.user.name} style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover' }} />
                           ) : (
                             <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold' }}>
                               {task.user.name.charAt(0)}

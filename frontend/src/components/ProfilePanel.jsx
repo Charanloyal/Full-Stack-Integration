@@ -71,7 +71,7 @@ export default function ProfilePanel() {
           <div style={{ position: 'relative' }}>
             {user?.avatarUrl ? (
               <img
-                src={`http://localhost:5000${user.avatarUrl}`}
+                src={window.location.hostname === 'localhost' ? `http://localhost:5000${user.avatarUrl}` : user.avatarUrl}
                 alt={user.name}
                 style={{ width: '120px', height: '120px', borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--primary)' }}
               />

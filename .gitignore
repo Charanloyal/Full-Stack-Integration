@@ -1,0 +1,22 @@
+node_modules/
+.env
+.env*.local
+dist/
+build/
+.DS_Store
+
+# Prisma / SQLite
+*.db
+*.db-journal
+backend/prisma/dev.db
+backend/prisma/dev.db-journal
+
+# File Uploads
+backend/public/uploads/*
+!backend/public/uploads/.gitkeep
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.eslintcache

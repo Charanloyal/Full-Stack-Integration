@@ -7,13 +7,27 @@ import { validate } from '../middleware/validate.js';
 const router = Router();
 
 // Zod schemas
+const attachmentUrlSchema = z.string().optional().nullable().or(z.string().length(0)).refine(
+  (val) => {
+    if (!val) return true;
+    if (val.startsWith('/uploads/')) return true;
+    try {
+      new URL(val);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  },
+  { message: 'Invalid attachment URL or path' }
+);
+
 const createTaskSchema = z.object({
   body: z.object({
     title: z.string({ required_error: 'Task title is required' }).min(1, 'Task title cannot be empty'),
     description: z.string().optional().nullable(),
     status: z.enum(['TODO', 'IN_PROGRESS', 'DONE']).optional(),
     dueDate: z.string().datetime({ message: 'Invalid ISO date string' }).optional().nullable().or(z.string().length(0)),
-    attachmentUrl: z.string().url('Invalid attachment URL').optional().nullable().or(z.string().length(0)),
+    attachmentUrl: attachmentUrlSchema,
   }),
 });
 
@@ -23,7 +37,7 @@ const updateTaskSchema = z.object({
     description: z.string().optional().nullable(),
     status: z.enum(['TODO', 'IN_PROGRESS', 'DONE']).optional(),
     dueDate: z.string().datetime().optional().nullable().or(z.string().length(0)),
-    attachmentUrl: z.string().url().optional().nullable().or(z.string().length(0)),
+    attachmentUrl: attachmentUrlSchema,
   }),
 });
 

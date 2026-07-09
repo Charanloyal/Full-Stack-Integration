@@ -17,13 +17,18 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, `${file.fieldname}-${uniqueSuffix}${path.extname(file.originalname)}`);
+    // Sanitize the original file name to prevent security vulnerabilities or weird characters
+    const cleanOriginalName = file.originalname
+      .replace(/[^a-zA-Z0-9.\-_]/g, '_')
+      .replace(/\s+/g, '_');
+    cb(null, `${file.fieldname}-${uniqueSuffix}-${cleanOriginalName}`);
   },
 });
 
 // File filter (limits what files can be uploaded)
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = [
+  // 1. Allowed MIME types
+  const allowedMimeTypes = [
     'image/jpeg',
     'image/png',
     'image/gif',
@@ -32,12 +37,34 @@ const fileFilter = (req, file, cb) => {
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'text/plain',
+    'application/json',
+    'application/zip',
+    'application/x-zip-compressed',
+    'application/x-zip',
+    'application/x-tar',
+    'application/gzip',
+    'application/x-gzip',
   ];
 
-  if (allowedTypes.includes(file.mimetype)) {
+  // 2. Allowed extensions (case-insensitive)
+  const allowedExtensions = [
+    '.jpg', '.jpeg', '.png', '.gif', '.webp',
+    '.pdf', '.doc', '.docx', '.txt', '.json',
+    '.zip', '.tar', '.gz', '.tgz', '.rar', '.7z',
+    '.c', '.cpp', '.h', '.hpp', '.java', '.py', '.js', '.jsx', '.ts', '.tsx', '.go', '.rs', '.cs', '.html', '.css', '.sh', '.sql'
+  ];
+
+  const ext = path.extname(file.originalname).toLowerCase();
+  const isAllowedMime = allowedMimeTypes.includes(file.mimetype);
+  const isAllowedExt = allowedExtensions.includes(ext);
+
+  // Also allow any MIME type starting with text/ (like text/x-c++src, text/x-python, etc.)
+  const isTextMime = file.mimetype && file.mimetype.startsWith('text/');
+
+  if (isAllowedMime || isAllowedExt || isTextMime) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Only images (jpeg/png/gif/webp), PDFs, DOC/DOCX, and TXT files are allowed.'), false);
+    cb(new Error('Invalid file type. Allowed files: images, PDFs, DOC/DOCX, text files, source code files, and archives (ZIP/TAR).'), false);
   }
 };
 

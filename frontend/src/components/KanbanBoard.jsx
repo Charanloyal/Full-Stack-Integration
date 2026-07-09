@@ -3,6 +3,21 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useSocket } from '../context/SocketContext.jsx';
 import { Plus, Trash2, Calendar, FileText, Upload, ArrowRight, ArrowLeft } from 'lucide-react';
 
+// Helper to resolve absolute attachment URLs
+const getAttachmentUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return window.location.hostname === 'localhost' ? `http://localhost:5000${url}` : url;
+};
+
+// Helper to extract sanitized original filename from the file URL
+const getAttachmentName = (url) => {
+  if (!url) return '';
+  const parts = url.split('/');
+  const filename = parts[parts.length - 1];
+  return filename.replace(/^attachment-\d+-\d+-/, '') || filename;
+};
+
 export default function KanbanBoard() {
   const { token, apiUrl } = useAuth();
   const { socket } = useSocket();
@@ -115,8 +130,8 @@ export default function KanbanBoard() {
       });
       const data = await response.json();
       if (response.ok && data.status === 'success') {
-        // Save relative path or complete host URL
-        setAttachmentUrl(window.location.hostname === 'localhost' ? `http://localhost:5000${data.fileUrl}` : data.fileUrl);
+        // Save relative path (client will dynamically resolve the domain)
+        setAttachmentUrl(data.fileUrl);
       } else {
         alert(data.message || 'File upload failed');
       }
@@ -258,9 +273,11 @@ export default function KanbanBoard() {
                           </div>
                         )}
                         {task.attachmentUrl && (
-                          <a href={task.attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--primary)', textDecoration: 'none' }}>
+                          <a href={getAttachmentUrl(task.attachmentUrl)} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--primary)', textDecoration: 'none' }}>
                             <FileText size={12} />
-                            <span>View Attachment</span>
+                            <span style={{ maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={getAttachmentName(task.attachmentUrl)}>
+                              {getAttachmentName(task.attachmentUrl)}
+                            </span>
                           </a>
                         )}
                       </div>

@@ -1,6 +1,8 @@
-# Month 2 Full-Stack Integration: Collaborative Workspace Board 
-Web Live Link https://full-stack-integration-7m7z.onrender.com/ 
+Final Advanced Full Stack Project: Collaborative Workspace Board 
+The new updates for final Project, TypeScript migrations, Zustand/React Query state integrations, Recharts dashboards, Docker setups and offline database fallback files have been pushed directly to the main branch of that same repository:
 
+Web Live Link https://full-stack-integration-7m7z.onrender.com/ 
+https://full-stack-integration-7m7z.onrender.com/
 A premium, glassmorphic collaborative dashboard built to review and integrate Month 2 topics (Days 40 to 49) of the Full-Stack Developer curriculum.
 
 ## 🚀 Month 2 Curriculum Covered

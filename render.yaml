@@ -2,7 +2,7 @@ services:
   - type: web
     name: full-stack-workspace
     env: node
-    buildCommand: npm install && npm run build --prefix frontend && npx prisma generate --schema=backend/prisma/schema.prisma && npx prisma migrate deploy --schema=backend/prisma/schema.prisma
+    buildCommand: npm install && npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend && npx prisma generate --schema=backend/prisma/schema.prisma && npx prisma migrate deploy --schema=backend/prisma/schema.prisma
     startCommand: node backend/src/index.js
     envVars:
       - key: NODE_ENV

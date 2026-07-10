@@ -18,12 +18,12 @@
     "recharts": "^3.9.2",
     "socket.io-client": "^4.8.3",
     "vite": "^8.1.1",
-    "zustand": "^5.0.14"
-  },
-  "devDependencies": {
+    "zustand": "^5.0.14",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "oxlint": "^1.71.0",
     "typescript": "^7.0.2"
+  },
+  "devDependencies": {
+    "oxlint": "^1.71.0"
   }
 }

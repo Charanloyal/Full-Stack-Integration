@@ -1,11 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext.jsx';
+import { useAuth } from '../context/AuthContext.tsx';
 import { ShieldAlert, RefreshCw, AlertTriangle, UserCheck, ShieldClose, Bug } from 'lucide-react';
+
+interface LogItem {
+  _id?: string;
+  id?: string;
+  eventType: string;
+  ip: string;
+  details: string;
+  createdAt: string;
+}
 
 export default function AdminLogsPanel() {
   const { token, apiUrl } = useAuth();
-  const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [logs, setLogs] = useState<LogItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const fetchLogs = async () => {
     setLoading(true);
@@ -28,7 +37,7 @@ export default function AdminLogsPanel() {
     fetchLogs();
   }, [token, apiUrl]);
 
-  const getLogIcon = (type) => {
+  const getLogIcon = (type: string) => {
     switch (type) {
       case 'AUTH_FAILURE':
         return <ShieldClose size={18} style={{ color: 'var(--danger)' }} />;
@@ -45,7 +54,7 @@ export default function AdminLogsPanel() {
     }
   };
 
-  const getLogLabel = (type) => {
+  const getLogLabel = (type: string) => {
     return type.replace(/_/g, ' ');
   };
 
@@ -88,7 +97,7 @@ export default function AdminLogsPanel() {
                   <td style={{ padding: '14px 8px', fontFamily: 'monospace', color: 'var(--text-secondary)' }}>
                     {log.ip}
                   </td>
-                  <td style={{ padding: '14px 8px', color: 'var(--text-secondary)', wordBreak: 'break-word', maxBreakWidth: '400px' }}>
+                  <td style={{ padding: '14px 8px', color: 'var(--text-secondary)', wordBreak: 'break-word' }}>
                     {log.details}
                   </td>
                   <td style={{ padding: '14px 8px', whiteSpace: 'nowrap', color: 'var(--text-muted)' }}>

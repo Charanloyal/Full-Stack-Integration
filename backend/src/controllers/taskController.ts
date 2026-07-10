@@ -1,8 +1,21 @@
+import { Request, Response, NextFunction } from 'express';
 import prisma from '../db/prisma.js';
 import { sendTaskNotification } from '../services/emailService.js';
+import { cacheGet, cacheSet, cacheDel } from '../services/redisService.js';
 
-export const getTasks = async (req, res, next) => {
+export const getTasks = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const cacheKey = 'workspace:tasks';
+    const cachedTasks = await cacheGet<any[]>(cacheKey);
+
+    if (cachedTasks) {
+      console.log('[Task Controller] Returning cached tasks list from Redis');
+      return res.status(200).json({
+        status: 'success',
+        tasks: cachedTasks,
+      });
+    }
+
     const tasks = await prisma.task.findMany({
       include: {
         user: {
@@ -19,18 +32,28 @@ export const getTasks = async (req, res, next) => {
       },
     });
 
+    const formattedTasks = tasks.map((task) => ({
+      ...task,
+      subtasks: task.subtasks ? JSON.parse(task.subtasks) : [],
+    }));
+
+    await cacheSet(cacheKey, formattedTasks, 300);
+
     return res.status(200).json({
       status: 'success',
-      tasks,
+      tasks: formattedTasks,
     });
   } catch (error) {
     next(error);
   }
 };
 
-export const createTask = async (req, res, next) => {
+export const createTask = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { title, description, status, dueDate, attachmentUrl } = req.body;
+    if (!req.user) {
+      return res.status(401).json({ status: 'error', message: 'Authentication required' });
+    }
+    const { title, description, status, dueDate, attachmentUrl, priority, subtasks } = req.body;
     const userId = req.user.id;
 
     const task = await prisma.task.create({
@@ -40,6 +63,8 @@ export const createTask = async (req, res, next) => {
         status: status || 'TODO',
         dueDate: dueDate ? new Date(dueDate) : null,
         attachmentUrl: attachmentUrl || null,
+        priority: priority || 'MEDIUM',
+        subtasks: subtasks ? JSON.stringify(subtasks) : JSON.stringify([]),
         userId,
       },
       include: {
@@ -54,29 +79,38 @@ export const createTask = async (req, res, next) => {
       },
     });
 
-    // Notify user via Email (background task)
-    sendTaskNotification(req.user, task, 'created').catch((e) =>
+    const formattedTask = {
+      ...task,
+      subtasks: task.subtasks ? JSON.parse(task.subtasks) : [],
+    };
+
+    // Invalidate Redis cache
+    await cacheDel('workspace:tasks');
+
+    sendTaskNotification(req.user, formattedTask, 'created').catch((e) =>
       console.error('Error sending task notification email:', e)
     );
 
-    // Broadcast update via WebSockets
     if (req.io) {
-      req.io.emit('task_created', task);
+      req.io.emit('task_created', formattedTask);
     }
 
     return res.status(201).json({
       status: 'success',
-      task,
+      task: formattedTask,
     });
   } catch (error) {
     next(error);
   }
 };
 
-export const updateTask = async (req, res, next) => {
+export const updateTask = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
-    const { title, description, status, dueDate, attachmentUrl } = req.body;
+    if (!req.user) {
+      return res.status(401).json({ status: 'error', message: 'Authentication required' });
+    }
+    const { id } = req.params as { id: string };
+    const { title, description, status, dueDate, attachmentUrl, priority, subtasks } = req.body;
 
     const existingTask = await prisma.task.findUnique({
       where: { id },
@@ -86,9 +120,6 @@ export const updateTask = async (req, res, next) => {
       return res.status(404).json({ status: 'error', message: 'Task not found' });
     }
 
-    // Check if the user is authorized: admin can update any, regular users can update any tasks in this collaborative setup
-    // For collaboration, anyone can edit tasks, which is standard, but we'll associate the editor with it if needed
-
     const updatedTask = await prisma.task.update({
       where: { id },
       data: {
@@ -97,6 +128,8 @@ export const updateTask = async (req, res, next) => {
         status: status !== undefined ? status : existingTask.status,
         dueDate: dueDate !== undefined ? (dueDate ? new Date(dueDate) : null) : existingTask.dueDate,
         attachmentUrl: attachmentUrl !== undefined ? attachmentUrl : existingTask.attachmentUrl,
+        priority: priority !== undefined ? priority : existingTask.priority,
+        subtasks: subtasks !== undefined ? JSON.stringify(subtasks) : existingTask.subtasks,
       },
       include: {
         user: {
@@ -110,28 +143,37 @@ export const updateTask = async (req, res, next) => {
       },
     });
 
-    // Notify user via Email
-    sendTaskNotification(req.user, updatedTask, `updated (status: ${updatedTask.status})`).catch((e) =>
+    const formattedTask = {
+      ...updatedTask,
+      subtasks: updatedTask.subtasks ? JSON.parse(updatedTask.subtasks) : [],
+    };
+
+    // Invalidate Redis cache
+    await cacheDel('workspace:tasks');
+
+    sendTaskNotification(req.user, formattedTask, `updated (status: ${formattedTask.status})`).catch((e) =>
       console.error('Error sending task update email:', e)
     );
 
-    // Broadcast update via WebSockets
     if (req.io) {
-      req.io.emit('task_updated', updatedTask);
+      req.io.emit('task_updated', formattedTask);
     }
 
     return res.status(200).json({
       status: 'success',
-      task: updatedTask,
+      task: formattedTask,
     });
   } catch (error) {
     next(error);
   }
 };
 
-export const deleteTask = async (req, res, next) => {
+export const deleteTask = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    if (!req.user) {
+      return res.status(401).json({ status: 'error', message: 'Authentication required' });
+    }
+    const { id } = req.params as { id: string };
 
     const existingTask = await prisma.task.findUnique({
       where: { id },
@@ -145,7 +187,9 @@ export const deleteTask = async (req, res, next) => {
       where: { id },
     });
 
-    // Broadcast deletion via WebSockets
+    // Invalidate Redis cache
+    await cacheDel('workspace:tasks');
+
     if (req.io) {
       req.io.emit('task_deleted', id);
     }

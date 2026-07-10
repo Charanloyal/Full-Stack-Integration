@@ -1,29 +1,49 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: month2-postgres
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: workspace-backend
     ports:
-      - "5432:5432"
+      - "5000:5000"
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgrespassword
-      POSTGRES_DB: month2_relational
+      - NODE_ENV=production
+      - PORT=5000
+      - MONGO_URI=mongodb://mongodb:27017/month2_chat
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=supersecretjwtkeyforlocaldevelopmentonly
+    depends_on:
+      - mongodb
+      - redis
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - sqlite-data:/app/prisma
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: workspace-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
 
   mongodb:
-    image: mongo:6.0
-    container_name: month2-mongodb
+    image: mongo:6.0-alpine
+    container_name: workspace-mongodb
     ports:
       - "27017:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: adminpassword
     volumes:
       - mongodata:/data/db
 
+  redis:
+    image: redis:7-alpine
+    container_name: workspace-redis
+    ports:
+      - "6379:6379"
+
 volumes:
-  pgdata:
+  sqlite-data:
   mongodata:

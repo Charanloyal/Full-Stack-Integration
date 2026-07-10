@@ -7,10 +7,7 @@ const router = Router();
 
 router.use(authenticate);
 
-// Avatar Upload Endpoint
 router.post('/avatar', uploadAvatar, uploadAvatarController);
-
-// General Attachment Upload Endpoint
 router.post('/attachment', uploadAttachment, uploadAttachmentController);
 
 export default router;

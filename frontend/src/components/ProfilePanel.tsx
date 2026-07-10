@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext.jsx';
+import React, { useState, ChangeEvent } from 'react';
+import { useAuth } from '../context/AuthContext.tsx';
 import { Upload, Mail, Shield, User, Info } from 'lucide-react';
 
 export default function ProfilePanel() {
   const { user, token, updateUser, apiUrl } = useAuth();
-  const [uploading, setUploading] = useState(false);
-  const [emailStatus, setEmailStatus] = useState('');
-  const [emailLoading, setEmailLoading] = useState(false);
+  const [uploading, setUploading] = useState<boolean>(false);
+  const [emailStatus, setEmailStatus] = useState<string>('');
+  const [emailLoading, setEmailLoading] = useState<boolean>(false);
 
-  const handleAvatarUpload = async (e) => {
-    const file = e.target.files[0];
+  const handleAvatarUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
@@ -30,7 +30,7 @@ export default function ProfilePanel() {
       } else {
         alert(data.message || 'Avatar upload failed');
       }
-    } catch (err) {
+    } catch (err: any) {
       alert(`Upload error: ${err.message}`);
     } finally {
       setUploading(false);
@@ -51,7 +51,7 @@ export default function ProfilePanel() {
       } else {
         setEmailStatus(`Error: ${data.message}`);
       }
-    } catch (err) {
+    } catch (err: any) {
       setEmailStatus(`Request error: ${err.message}`);
     } finally {
       setEmailLoading(false);
@@ -131,7 +131,7 @@ export default function ProfilePanel() {
         </div>
       </div>
 
-      {/* NodeMailer Test Dispatcher (Day 45-46 Integration) */}
+      {/* NodeMailer Test Dispatcher */}
       <div className="glass-panel animate-fade-in" style={{ padding: '24px' }}>
         <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Mail size={18} style={{ color: 'var(--primary)' }} />

@@ -6,7 +6,6 @@ import { validate } from '../middleware/validate.js';
 
 const router = Router();
 
-// Zod schemas
 const attachmentUrlSchema = z.string().optional().nullable().or(z.string().length(0)).refine(
   (val) => {
     if (!val) return true;
@@ -28,6 +27,12 @@ const createTaskSchema = z.object({
     status: z.enum(['TODO', 'IN_PROGRESS', 'DONE']).optional(),
     dueDate: z.string().datetime({ message: 'Invalid ISO date string' }).optional().nullable().or(z.string().length(0)),
     attachmentUrl: attachmentUrlSchema,
+    priority: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
+    subtasks: z.array(z.object({
+      id: z.string(),
+      text: z.string(),
+      completed: z.boolean()
+    })).optional()
   }),
 });
 
@@ -38,10 +43,15 @@ const updateTaskSchema = z.object({
     status: z.enum(['TODO', 'IN_PROGRESS', 'DONE']).optional(),
     dueDate: z.string().datetime().optional().nullable().or(z.string().length(0)),
     attachmentUrl: attachmentUrlSchema,
+    priority: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
+    subtasks: z.array(z.object({
+      id: z.string(),
+      text: z.string(),
+      completed: z.boolean()
+    })).optional()
   }),
 });
 
-// All routes require authentication
 router.use(authenticate);
 
 router.get('/', getTasks);

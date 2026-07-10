@@ -1,25 +1,61 @@
-import React, { useState } from 'react';
-import { AuthProvider, useAuth } from './context/AuthContext.jsx';
-import { SocketProvider } from './context/SocketContext.jsx';
-import KanbanBoard from './components/KanbanBoard.jsx';
-import ChatWindow from './components/ChatWindow.jsx';
-import ProfilePanel from './components/ProfilePanel.jsx';
-import AdminLogsPanel from './components/AdminLogsPanel.jsx';
-import { Kanban, MessageSquare, User, ShieldAlert, LogOut, CheckCircle2 } from 'lucide-react';
+import React, { useState, FormEvent } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext.tsx';
+import { SocketProvider } from './context/SocketContext.tsx';
+import KanbanBoard from './components/KanbanBoard.tsx';
+import ChatWindow from './components/ChatWindow.tsx';
+import ProfilePanel from './components/ProfilePanel.tsx';
+import AdminLogsPanel from './components/AdminLogsPanel.tsx';
+import AnalyticsDashboard from './components/AnalyticsDashboard.tsx';
+import { useUIStore, TabType } from './store/useUIStore.ts';
+import { useQuery } from '@tanstack/react-query';
+import { Kanban, MessageSquare, User, ShieldAlert, LogOut, CheckCircle2, BarChart2 } from 'lucide-react';
+
+interface Task {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  priority: string;
+  dueDate: string | null;
+  attachmentUrl: string | null;
+  userId: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    avatarUrl: string | null;
+  };
+  createdAt: string;
+}
 
 function AppContent() {
-  const { user, loading, login, register, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState('tasks');
-  const [authMode, setAuthMode] = useState('login'); // 'login' | 'register'
+  const { user, loading, login, register, logout, apiUrl, token } = useAuth();
+  
+  // Zustand Store UI tab management
+  const { activeTab, setActiveTab } = useUIStore();
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
 
-  // Input states
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [role, setRole] = useState('USER');
-  const [errorMsg, setErrorMsg] = useState('');
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [name, setName] = useState<string>('');
+  const [role, setRole] = useState<string>('USER');
+  const [errorMsg, setErrorMsg] = useState<string>('');
 
-  const handleAuthSubmit = async (e) => {
+  // Fetch Tasks count for badge/charts cache via React Query
+  const { data: tasks = [] } = useQuery<Task[]>({
+    queryKey: ['tasks'],
+    queryFn: async () => {
+      const response = await fetch(`${apiUrl}/tasks`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message);
+      return data.tasks;
+    },
+    enabled: !!user,
+  });
+
+  const handleAuthSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
@@ -29,18 +65,18 @@ function AppContent() {
       } else {
         await register(email, password, name, role);
       }
-    } catch (err) {
+    } catch (err: any) {
       setErrorMsg(err.message);
     }
   };
 
-  const handleSeedLogin = async (seedEmail) => {
+  const handleSeedLogin = async (seedEmail: string) => {
     setErrorMsg('');
     setEmail(seedEmail);
     setPassword('password123');
     try {
       await login(seedEmail, 'password123');
-    } catch (err) {
+    } catch (err: any) {
       setErrorMsg(err.message);
     }
   };
@@ -56,7 +92,6 @@ function AppContent() {
     );
   }
 
-  // Not Logged In screen
   if (!user) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
@@ -65,7 +100,7 @@ function AppContent() {
             <h1 className="text-glow" style={{ fontSize: '28px', fontWeight: '800', color: 'white', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
               <Kanban style={{ color: 'var(--primary)' }} /> Workspace
             </h1>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '4px' }}>Month 2 Fullstack Review & Integration</p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '4px' }}>Advanced Fullstack Team Portal</p>
           </div>
 
           <div style={{ display: 'flex', background: 'rgba(15, 23, 42, 0.4)', padding: '4px', borderRadius: '8px', marginBottom: '24px' }}>
@@ -121,17 +156,16 @@ function AppContent() {
             </button>
           </form>
 
-          {/* Quick Seeding accounts for review convenience */}
           <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
             <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: '700', display: 'block', marginBottom: '10px' }}>
-              Dev Seeding Accounts (SQLite/Prisma Seeding)
+              Dev Seeding Accounts
             </span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <button className="btn btn-secondary" onClick={() => handleSeedLogin('user@example.com')} style={{ fontSize: '12px', padding: '8px 12px', justifyContent: 'flex-start' }}>
                 <CheckCircle2 size={12} style={{ color: 'var(--success)' }} /> Login as Standard User
               </button>
               <button className="btn btn-secondary" onClick={() => handleSeedLogin('admin@example.com')} style={{ fontSize: '12px', padding: '8px 12px', justifyContent: 'flex-start' }}>
-                <CheckCircle2 size={12} style={{ color: 'var(--success)' }} /> Login as Administrator (Audit Logs Access)
+                <CheckCircle2 size={12} style={{ color: 'var(--success)' }} /> Login as Administrator
               </button>
             </div>
           </div>
@@ -140,17 +174,14 @@ function AppContent() {
     );
   }
 
-  // Dashboard Main Render
   return (
     <div className="app-container">
-      {/* Top Header */}
       <header style={{ height: '70px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', background: 'rgba(15, 23, 42, 0.3)', backdropFilter: 'blur(10px)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <Kanban style={{ color: 'var(--primary)' }} />
           <span style={{ fontSize: '18px', fontWeight: '800', letterSpacing: '-0.02em' }}>Workspace Board</span>
         </div>
         
-        {/* User badge */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
             <span style={{ fontSize: '14px', fontWeight: '700' }}>{user.name}</span>
@@ -166,9 +197,7 @@ function AppContent() {
         </div>
       </header>
 
-      {/* Main layout */}
       <div className="main-content">
-        {/* Left Side Navigation */}
         <nav style={{ padding: '24px', background: 'rgba(15, 23, 42, 0.15)', display: 'flex', flexDirection: 'column', gap: '8px', borderRight: '1px solid rgba(255,255,255,0.05)' }}>
           <button
             onClick={() => setActiveTab('tasks')}
@@ -176,6 +205,14 @@ function AppContent() {
             style={{ justifyContent: 'flex-start', width: '100%' }}
           >
             <Kanban size={16} /> Task Board
+          </button>
+
+          <button
+            onClick={() => setActiveTab('analytics')}
+            className={`btn ${activeTab === 'analytics' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ justifyContent: 'flex-start', width: '100%' }}
+          >
+            <BarChart2 size={16} /> Analytics Info
           </button>
           
           <button
@@ -196,15 +233,14 @@ function AppContent() {
 
           {user.role === 'ADMIN' && (
             <button
-              onClick={() => setActiveTab('admin')}
-              className={`btn ${activeTab === 'admin' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setActiveTab('logs')}
+              className={`btn ${activeTab === 'logs' ? 'btn-primary' : 'btn-secondary'}`}
               style={{ justifyContent: 'flex-start', width: '100%' }}
             >
               <ShieldAlert size={16} /> Security Audit
             </button>
           )}
 
-          {/* Spacer */}
           <div style={{ flex: 1 }} />
 
           <button onClick={logout} className="btn btn-secondary" style={{ justifyContent: 'flex-start', color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.2)' }}>
@@ -212,12 +248,12 @@ function AppContent() {
           </button>
         </nav>
 
-        {/* Tab Panel viewports */}
-        <main style={{ height: '100%', overflow: 'hidden' }}>
+        <main style={{ height: '100%', overflow: 'hidden', padding: '24px' }}>
           {activeTab === 'tasks' && <KanbanBoard />}
+          {activeTab === 'analytics' && <AnalyticsDashboard tasks={tasks} />}
           {activeTab === 'chat' && <ChatWindow />}
           {activeTab === 'profile' && <ProfilePanel />}
-          {activeTab === 'admin' && user.role === 'ADMIN' && <AdminLogsPanel />}
+          {activeTab === 'logs' && user.role === 'ADMIN' && <AdminLogsPanel />}
         </main>
       </div>
     </div>

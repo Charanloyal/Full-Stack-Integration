@@ -1,23 +1,22 @@
-import multer from 'multer';
+import multer, { FileFilterCallback } from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { Request } from 'express';
 
 // Ensure upload directory exists
 const uploadDir = './public/uploads';
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
-  // Create .gitkeep so git tracks the folder structure but ignores files due to root .gitignore
   fs.writeFileSync(path.join(uploadDir, '.gitkeep'), '');
 }
 
 // Storage Configuration
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: (req: Request, file: Express.Multer.File, cb) => {
     cb(null, uploadDir);
   },
-  filename: (req, file, cb) => {
+  filename: (req: Request, file: Express.Multer.File, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    // Sanitize the original file name to prevent security vulnerabilities or weird characters
     const cleanOriginalName = file.originalname
       .replace(/[^a-zA-Z0-9.\-_]/g, '_')
       .replace(/\s+/g, '_');
@@ -26,7 +25,7 @@ const storage = multer.diskStorage({
 });
 
 // File filter (limits what files can be uploaded)
-const fileFilter = (req, file, cb) => {
+const fileFilter = (req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
   // 1. Allowed MIME types
   const allowedMimeTypes = [
     'image/jpeg',
@@ -64,7 +63,7 @@ const fileFilter = (req, file, cb) => {
   if (isAllowedMime || isAllowedExt || isTextMime) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Allowed files: images, PDFs, DOC/DOCX, text files, source code files, and archives (ZIP/TAR).'), false);
+    cb(new Error('Invalid file type. Allowed files: images, PDFs, DOC/DOCX, text files, source code files, and archives (ZIP/TAR).'));
   }
 };
 

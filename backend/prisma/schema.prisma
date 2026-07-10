@@ -36,6 +36,8 @@ model Task {
   status        String   @default("TODO") // "TODO" | "IN_PROGRESS" | "DONE"
   dueDate       DateTime?
   attachmentUrl String?
+  priority      String   @default("MEDIUM") // "LOW" | "MEDIUM" | "HIGH"
+  subtasks      String?  // Stored as serialized JSON string of subtask objects
   userId        String
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt     DateTime @default(now())

@@ -1,17 +1,34 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../context/AuthContext.jsx';
-import { useSocket } from '../context/SocketContext.jsx';
+import React, { useState, useEffect, useRef, FormEvent } from 'react';
+import { useAuth } from '../context/AuthContext.tsx';
+import { useSocket } from '../context/SocketContext.tsx';
 import { Send, MessageSquare, Users, ShieldAlert } from 'lucide-react';
+
+interface ChatMessage {
+  _id?: string;
+  id?: string;
+  senderId: string;
+  senderName: string;
+  senderAvatarUrl: string | null;
+  content: string;
+  createdAt: string;
+}
+
+interface OnlineUser {
+  socketId: string;
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+  role: string;
+}
 
 export default function ChatWindow() {
   const { user, token, apiUrl } = useAuth();
   const { socket, onlineUsers } = useSocket();
 
-  const [messages, setMessages] = useState([]);
-  const [inputText, setInputText] = useState('');
-  const messagesEndRef = useRef(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputText, setInputText] = useState<string>('');
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Load chat history from MongoDB (Mongoose)
   useEffect(() => {
     const fetchHistory = async () => {
       try {
@@ -29,13 +46,11 @@ export default function ChatWindow() {
     fetchHistory();
   }, [token, apiUrl]);
 
-  // Subscribe to real-time chat messages via Socket.io (WebSocket)
   useEffect(() => {
     if (!socket) return;
 
-    socket.on('chat_message', (message) => {
+    socket.on('chat_message', (message: ChatMessage) => {
       setMessages((prev) => {
-        // Prevent duplicate messages
         if (prev.some((m) => m._id === message._id)) return prev;
         return [...prev, message];
       });
@@ -46,17 +61,14 @@ export default function ChatWindow() {
     };
   }, [socket]);
 
-  // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Send message
-  const handleSendMessage = (e) => {
+  const handleSendMessage = (e: FormEvent) => {
     e.preventDefault();
     if (!inputText.trim() || !socket) return;
 
-    // Send via socket connection (saves to MongoDB on backend and broadcasts to everyone)
     socket.emit('chat_message', inputText.trim());
     setInputText('');
   };
@@ -173,11 +185,11 @@ export default function ChatWindow() {
       <div style={{ padding: '20px', overflowY: 'auto' }}>
         <h3 style={{ fontSize: '14px', fontWeight: '700', textTransform: 'uppercase', color: 'var(--text-secondary)', letterSpacing: '0.05em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
           <Users size={14} />
-          Online ({onlineUsers.length})
+          Online ({(onlineUsers as OnlineUser[]).length})
         </h3>
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {onlineUsers.map((u) => (
+          {(onlineUsers as OnlineUser[]).map((u) => (
             <div key={u.socketId} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ position: 'relative' }}>
                 {u.avatarUrl ? (
@@ -205,7 +217,6 @@ export default function ChatWindow() {
                     {u.name.charAt(0)}
                   </div>
                 )}
-                {/* Active Indicator dot */}
                 <div
                   style={{
                     position: 'absolute',

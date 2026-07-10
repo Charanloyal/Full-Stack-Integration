@@ -1,18 +1,37 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 
-const AuthContext = createContext(null);
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  avatarUrl: string | null;
+}
+
+interface AuthContextProps {
+  user: User | null;
+  token: string | null;
+  loading: boolean;
+  error: string | null;
+  login: (email: string, password: string) => Promise<any>;
+  register: (email: string, password: string, name: string, role?: string) => Promise<any>;
+  logout: () => Promise<void>;
+  updateUser: (updatedUser: User) => void;
+  apiUrl: string;
+}
+
+const AuthContext = createContext<AuthContextProps | null>(null);
 
 const API_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:5000/api'
   : `${window.location.origin}/api`;
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token') || null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(localStorage.getItem('token') || null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Authenticate user on mount
   useEffect(() => {
     const fetchUser = async () => {
       const savedToken = localStorage.getItem('token');
@@ -33,7 +52,6 @@ export const AuthProvider = ({ children }) => {
           setUser(data.user);
           setToken(savedToken);
         } else {
-          // Token expired or invalid
           localStorage.removeItem('token');
           setToken(null);
           setUser(null);
@@ -48,7 +66,7 @@ export const AuthProvider = ({ children }) => {
     fetchUser();
   }, [token]);
 
-  const login = async (email, password) => {
+  const login = async (email: string, password: string) => {
     setError(null);
     try {
       const response = await fetch(`${API_URL}/auth/login`, {
@@ -66,13 +84,13 @@ export const AuthProvider = ({ children }) => {
       setToken(data.token);
       setUser(data.user);
       return data;
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message);
       throw err;
     }
   };
 
-  const register = async (email, password, name, role = 'USER') => {
+  const register = async (email: string, password: string, name: string, role = 'USER') => {
     setError(null);
     try {
       const response = await fetch(`${API_URL}/auth/register`, {
@@ -90,7 +108,7 @@ export const AuthProvider = ({ children }) => {
       setToken(data.token);
       setUser(data.user);
       return data;
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message);
       throw err;
     }
@@ -99,7 +117,7 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       await fetch(`${API_URL}/auth/logout`, { method: 'POST' });
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Logout request failed:', err.message);
     } finally {
       localStorage.removeItem('token');
@@ -108,7 +126,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const updateUser = (updatedUser) => {
+  const updateUser = (updatedUser: User) => {
     setUser(updatedUser);
   };
 
@@ -131,4 +149,10 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};

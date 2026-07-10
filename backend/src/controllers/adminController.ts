@@ -1,6 +1,7 @@
+import { Request, Response, NextFunction } from 'express';
 import { SecurityLog } from '../models/SecurityLog.js';
 
-export const getSecurityLogs = async (req, res, next) => {
+export const getSecurityLogs = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const logs = await SecurityLog.find()
       .sort({ createdAt: -1 })

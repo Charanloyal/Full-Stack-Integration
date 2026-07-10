@@ -1,17 +1,15 @@
+import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import prisma from '../db/prisma.js';
 import { SecurityLog } from '../models/SecurityLog.js';
 
-export const authenticate = async (req, res, next) => {
+export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    let token = null;
+    let token: string | null = null;
 
-    // Check authorization header
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
       token = req.headers.authorization.split(' ')[1];
-    }
-    // Check cookies (if parsed by cookie-parser, otherwise we can manually extract from req.headers.cookie)
-    else if (req.headers.cookie) {
+    } else if (req.headers.cookie) {
       const tokenCookie = req.headers.cookie
         .split(';')
         .find((c) => c.trim().startsWith('token='));
@@ -24,9 +22,8 @@ export const authenticate = async (req, res, next) => {
       return res.status(401).json({ status: 'error', message: 'Authentication required. Please login.' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecretjwtkeyforlocaldevelopmentonly');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecretjwtkeyforlocaldevelopmentonly') as { id: string };
     
-    // Fetch user from relational DB
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
       select: {
@@ -44,12 +41,12 @@ export const authenticate = async (req, res, next) => {
 
     req.user = user;
     next();
-  } catch (error) {
-    // Log auth failure
+  } catch (error: any) {
     try {
+      const remoteIp = req.ip || req.socket.remoteAddress || '127.0.0.1';
       await SecurityLog.create({
         eventType: 'AUTH_FAILURE',
-        ip: req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1',
+        ip: remoteIp,
         details: `Failed JWT Authentication: ${error.message}`,
       });
     } catch (logError) {
@@ -60,23 +57,21 @@ export const authenticate = async (req, res, next) => {
   }
 };
 
-export const authorize = (roles = []) => {
-  if (typeof roles === 'string') {
-    roles = [roles];
-  }
+export const authorize = (roles: string | string[] = []) => {
+  const allowedRoles = typeof roles === 'string' ? [roles] : roles;
 
-  return async (req, res, next) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({ status: 'error', message: 'Authentication required.' });
     }
 
-    if (roles.length && !roles.includes(req.user.role)) {
-      // Log unauthorized access attempt
+    if (allowedRoles.length && !allowedRoles.includes(req.user.role)) {
       try {
+        const remoteIp = req.ip || req.socket.remoteAddress || '127.0.0.1';
         await SecurityLog.create({
           eventType: 'UNAUTHORIZED_ACCESS',
-          ip: req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1',
-          details: `User ${req.user.email} (Role: ${req.user.role}) attempted to access resource requiring roles: [${roles.join(', ')}]`,
+          ip: remoteIp,
+          details: `User ${req.user.email} (Role: ${req.user.role}) attempted to access resource requiring roles: [${allowedRoles.join(', ')}]`,
           userId: req.user.id,
         });
       } catch (logError) {

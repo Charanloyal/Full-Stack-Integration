@@ -1,6 +1,6 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import http from 'http';
-import { Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -40,14 +40,14 @@ const PORT = process.env.PORT || 5000;
 // Security Middlewares
 app.use(
   helmet({
-    crossOriginResourcePolicy: false, // Essential to allow frontend to fetch uploaded files (e.g. avatars)
+    crossOriginResourcePolicy: false,
   })
 );
 
 // CORS Config
 app.use(
   cors({
-    origin: true, // Echo origin
+    origin: true,
     credentials: true,
   })
 );
@@ -58,16 +58,16 @@ app.use(express.urlencoded({ extended: true }));
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(process.cwd(), 'public/uploads')));
 
-// Rate Limiting (Day 47-48 requirement)
+// Rate Limiting
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 200,
-  handler: async (req, res) => {
-    // Log rate limit alerts in SecurityLog (MongoDB)
+  handler: async (req: Request, res: Response) => {
     try {
+      const remoteIp = req.ip || req.socket.remoteAddress || '127.0.0.1';
       await SecurityLog.create({
         eventType: 'RATE_LIMIT_ALERT',
-        ip: req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1',
+        ip: remoteIp,
         details: `IP breached API rate limit. Requested URL: ${req.originalUrl}`,
       });
     } catch (logError) {
@@ -84,7 +84,7 @@ const apiLimiter = rateLimit({
 app.use('/api', apiLimiter);
 
 // Inject WebSocket server into requests for routing broadcasts
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   req.io = io;
   next();
 });
@@ -104,7 +104,7 @@ const clientDistPath = path.join(__dirname, '../../frontend/dist');
 app.use(express.static(clientDistPath));
 
 // Fallback all SPA routes to index.html (excluding /api)
-app.get('*', (req, res, next) => {
+app.get('*', (req: Request, res: Response, next: NextFunction) => {
   if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
     return next();
   }
@@ -114,18 +114,27 @@ app.get('*', (req, res, next) => {
 // Centralized error handling
 app.use(errorHandler);
 
-// Socket.io WebSockets management (Day 45-46 requirement)
-const onlineUsers = new Map(); // socket.id -> user profile info
+// Socket.io WebSockets management
+interface SocketWithUser extends Socket {
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+    avatarUrl: string | null;
+    role: string;
+  };
+}
 
-// WebSocket Auth Middleware
-io.use(async (socket, next) => {
+const onlineUsers = new Map<string, any>(); // socket.id -> user profile info
+
+io.use(async (socket: SocketWithUser, next) => {
   try {
-    const token = socket.handshake.auth.token || socket.handshake.headers.token;
+    const token = (socket.handshake.auth.token || socket.handshake.headers.token) as string | undefined;
     if (!token) {
       return next(new Error('Authentication failed: Missing token'));
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecretjwtkeyforlocaldevelopmentonly');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecretjwtkeyforlocaldevelopmentonly') as { id: string };
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
       select: {
@@ -148,11 +157,10 @@ io.use(async (socket, next) => {
   }
 });
 
-io.on('connection', (socket) => {
+io.on('connection', (socket: SocketWithUser) => {
+  if (!socket.user) return;
   console.log(`WebSocket client connected: ${socket.user.name} (${socket.id})`);
 
-  // Add user to online list
-  // Note: if user opens multiple tabs, we deduplicate by user ID on client or track socket IDs.
   onlineUsers.set(socket.id, {
     socketId: socket.id,
     id: socket.user.id,
@@ -161,44 +169,38 @@ io.on('connection', (socket) => {
     role: socket.user.role,
   });
 
-  // Send the updated online list to all clients
   io.emit('online_users', Array.from(onlineUsers.values()));
 
-  // Listen for chat messages (Day 45-46 Websockets & Day 42 MongoDB Mongoose integration)
-  socket.on('chat_message', async (content) => {
+  socket.on('chat_message', async (content: string) => {
     try {
-      if (!content || typeof content !== 'string' || content.trim() === '') return;
+      if (!socket.user || !content || typeof content !== 'string' || content.trim() === '') return;
 
-      // Save to MongoDB
       const savedMessage = await ChatMessage.create({
         senderId: socket.user.id,
         senderName: socket.user.name,
         senderAvatarUrl: socket.user.avatarUrl,
         content: content.trim(),
+        attachmentUrl: null,
       });
 
-      // Broadcast chat message
       io.emit('chat_message', savedMessage);
     } catch (err) {
       console.error('Error saving and broadcasting chat message:', err);
     }
   });
 
-  // Handle client disconnection
   socket.on('disconnect', () => {
+    if (!socket.user) return;
     console.log(`WebSocket client disconnected: ${socket.user.name} (${socket.id})`);
     onlineUsers.delete(socket.id);
     io.emit('online_users', Array.from(onlineUsers.values()));
   });
 });
 
-// Setup server lifecycle
 const bootstrap = async () => {
   try {
-    // Connect document database (MongoDB Memory Server fallbacked)
     await connectMongoDB();
 
-    // Start HTTP and WS server
     server.listen(PORT, () => {
       console.log(`[Workspace API] Listening on http://localhost:${PORT}`);
     });

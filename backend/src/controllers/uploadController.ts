@@ -1,15 +1,17 @@
+import { Request, Response, NextFunction } from 'express';
 import prisma from '../db/prisma.js';
 
-export const uploadAvatarController = async (req, res, next) => {
+export const uploadAvatarController = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ status: 'error', message: 'Authentication required' });
+    }
     if (!req.file) {
       return res.status(400).json({ status: 'error', message: 'No file uploaded or file type not allowed.' });
     }
 
-    // Formulate relative upload URL
     const fileUrl = `/uploads/${req.file.filename}`;
 
-    // Save avatar in Prisma
     const updatedUser = await prisma.user.update({
       where: { id: req.user.id },
       data: { avatarUrl: fileUrl },
@@ -33,13 +35,12 @@ export const uploadAvatarController = async (req, res, next) => {
   }
 };
 
-export const uploadAttachmentController = async (req, res, next) => {
+export const uploadAttachmentController = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!req.file) {
       return res.status(400).json({ status: 'error', message: 'No file uploaded or file type not allowed.' });
     }
 
-    // Formulate relative upload URL
     const fileUrl = `/uploads/${req.file.filename}`;
 
     return res.status(200).json({

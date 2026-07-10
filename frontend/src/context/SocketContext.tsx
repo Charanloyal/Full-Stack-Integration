@@ -1,13 +1,18 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { io } from 'socket.io-client';
-import { useAuth } from './AuthContext.jsx';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { io, Socket } from 'socket.io-client';
+import { useAuth } from './AuthContext.tsx';
 
-const SocketContext = createContext(null);
+interface SocketContextProps {
+  socket: Socket | null;
+  onlineUsers: any[];
+}
 
-export const SocketProvider = ({ children }) => {
+const SocketContext = createContext<SocketContextProps | null>(null);
+
+export const SocketProvider = ({ children }: { children: ReactNode }) => {
   const { token, user } = useAuth();
-  const [socket, setSocket] = useState(null);
-  const [onlineUsers, setOnlineUsers] = useState([]);
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
 
   useEffect(() => {
     if (!token || !user) {
@@ -23,7 +28,6 @@ export const SocketProvider = ({ children }) => {
       ? 'http://localhost:5000'
       : window.location.origin;
 
-    // Connect to WebSocket server with token authentication
     const newSocket = io(socketUrl, {
       auth: { token },
     });
@@ -54,4 +58,10 @@ export const SocketProvider = ({ children }) => {
   );
 };
 
-export const useSocket = () => useContext(SocketContext);
+export const useSocket = () => {
+  const context = useContext(SocketContext);
+  if (!context) {
+    throw new Error('useSocket must be used within a SocketProvider');
+  }
+  return context;
+};

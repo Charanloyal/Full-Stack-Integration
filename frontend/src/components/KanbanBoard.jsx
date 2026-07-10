@@ -92,7 +92,13 @@ export default function KanbanBoard() {
         body: JSON.stringify({ status: newStatus }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
+      if (!response.ok) {
+        if (data.errors && Array.isArray(data.errors)) {
+          const details = data.errors.map(err => `- ${err.field}: ${err.message}`).join('\n');
+          throw new Error(`${data.message}\n\nDetails:\n${details}`);
+        }
+        throw new Error(data.message || 'Validation failed');
+      }
     } catch (err) {
       alert(`Error updating task status: ${err.message}`);
     }
@@ -163,7 +169,13 @@ export default function KanbanBoard() {
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
+      if (!response.ok) {
+        if (data.errors && Array.isArray(data.errors)) {
+          const details = data.errors.map(err => `- ${err.field}: ${err.message}`).join('\n');
+          throw new Error(`${data.message}\n\nDetails:\n${details}`);
+        }
+        throw new Error(data.message || 'Validation failed');
+      }
 
       // Clear fields
       setTitle('');

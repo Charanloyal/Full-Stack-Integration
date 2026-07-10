@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import prisma from '../db/prisma.js';
 import { sendWelcomeEmail } from '../services/emailService.js';
 import { SecurityLog } from '../models/SecurityLog.js';
+import { saveLocalLog } from '../services/jsonDbService.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkeyforlocaldevelopmentonly';
 const NODE_ENV = process.env.NODE_ENV || 'development';
@@ -79,7 +80,11 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
           details: `Failed login attempt for email: ${email}`,
         });
       } else {
-        console.warn('[Mongoose] Skipping failed auth logging: MongoDB is not connected');
+        await saveLocalLog({
+          eventType: 'AUTH_FAILURE',
+          ip: ipAddress,
+          details: `Failed login attempt for email: ${email}`,
+        });
       }
 
       return res.status(401).json({ status: 'error', message: 'Invalid email or password' });
@@ -104,7 +109,12 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
         userId: user.id,
       });
     } else {
-      console.warn('[Mongoose] Skipping successful auth logging: MongoDB is not connected');
+      await saveLocalLog({
+        eventType: 'AUTH_SUCCESS',
+        ip: ipAddress,
+        details: `Successful login for email: ${email}`,
+        userId: user.id,
+      });
     }
 
     return res.status(200).json({

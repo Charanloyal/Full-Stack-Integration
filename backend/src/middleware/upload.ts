@@ -70,7 +70,7 @@ const fileFilter = (req: Request, file: Express.Multer.File, cb: FileFilterCallb
 // Multer Upload Instances
 export const uploadAvatar = multer({
   storage,
-  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter,
 }).single('avatar');
 

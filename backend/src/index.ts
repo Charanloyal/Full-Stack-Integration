@@ -14,6 +14,7 @@ import { connectMongoDB } from './db/mongodb.js';
 import prisma from './db/prisma.js';
 import { ChatMessage } from './models/ChatMessage.js';
 import { SecurityLog } from './models/SecurityLog.js';
+import { saveLocalLog, saveLocalChat } from './services/jsonDbService.js';
 
 // Route Imports
 import authRoutes from './routes/authRoutes.js';
@@ -73,7 +74,11 @@ const apiLimiter = rateLimit({
           details: `IP breached API rate limit. Requested URL: ${req.originalUrl}`,
         });
       } else {
-        console.warn('[Mongoose] Skipping rate limit logging: MongoDB is not connected');
+        await saveLocalLog({
+          eventType: 'RATE_LIMIT_ALERT',
+          ip: remoteIp,
+          details: `IP breached API rate limit. Requested URL: ${req.originalUrl}`,
+        });
       }
     } catch (logError) {
       console.error('Failed to log rate limit to MongoDB:', logError);
@@ -181,15 +186,15 @@ io.on('connection', (socket: SocketWithUser) => {
       if (!socket.user || !content || typeof content !== 'string' || content.trim() === '') return;
 
       if (mongoose.connection.readyState !== 1) {
-        console.warn('[Mongoose] Skipping ChatMessage save: MongoDB is not connected');
-        const temporaryMessage = {
+        console.warn('[Mongoose] Offline: saving ChatMessage to local JSON database');
+        const savedMessage = await saveLocalChat({
           senderId: socket.user.id,
           senderName: socket.user.name,
           senderAvatarUrl: socket.user.avatarUrl,
           content: content.trim(),
-          createdAt: new Date().toISOString(),
-        };
-        io.emit('chat_message', temporaryMessage);
+          attachmentUrl: null,
+        });
+        io.emit('chat_message', savedMessage);
         return;
       }
 

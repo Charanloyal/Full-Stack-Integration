@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import prisma from '../db/prisma.js';
 import { sendWelcomeEmail } from '../services/emailService.js';
 import { SecurityLog } from '../models/SecurityLog.js';
@@ -71,11 +72,15 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     });
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
-      await SecurityLog.create({
-        eventType: 'AUTH_FAILURE',
-        ip: ipAddress,
-        details: `Failed login attempt for email: ${email}`,
-      });
+      if (mongoose.connection.readyState === 1) {
+        await SecurityLog.create({
+          eventType: 'AUTH_FAILURE',
+          ip: ipAddress,
+          details: `Failed login attempt for email: ${email}`,
+        });
+      } else {
+        console.warn('[Mongoose] Skipping failed auth logging: MongoDB is not connected');
+      }
 
       return res.status(401).json({ status: 'error', message: 'Invalid email or password' });
     }
@@ -91,12 +96,16 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    await SecurityLog.create({
-      eventType: 'AUTH_SUCCESS',
-      ip: ipAddress,
-      details: `Successful login for email: ${email}`,
-      userId: user.id,
-    });
+    if (mongoose.connection.readyState === 1) {
+      await SecurityLog.create({
+        eventType: 'AUTH_SUCCESS',
+        ip: ipAddress,
+        details: `Successful login for email: ${email}`,
+        userId: user.id,
+      });
+    } else {
+      console.warn('[Mongoose] Skipping successful auth logging: MongoDB is not connected');
+    }
 
     return res.status(200).json({
       status: 'success',

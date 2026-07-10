@@ -8,6 +8,7 @@ import path from 'path';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
 import { fileURLToPath } from 'url';
+import mongoose from 'mongoose';
 
 import { connectMongoDB } from './db/mongodb.js';
 import prisma from './db/prisma.js';
@@ -65,11 +66,15 @@ const apiLimiter = rateLimit({
   handler: async (req: Request, res: Response) => {
     try {
       const remoteIp = req.ip || req.socket.remoteAddress || '127.0.0.1';
-      await SecurityLog.create({
-        eventType: 'RATE_LIMIT_ALERT',
-        ip: remoteIp,
-        details: `IP breached API rate limit. Requested URL: ${req.originalUrl}`,
-      });
+      if (mongoose.connection.readyState === 1) {
+        await SecurityLog.create({
+          eventType: 'RATE_LIMIT_ALERT',
+          ip: remoteIp,
+          details: `IP breached API rate limit. Requested URL: ${req.originalUrl}`,
+        });
+      } else {
+        console.warn('[Mongoose] Skipping rate limit logging: MongoDB is not connected');
+      }
     } catch (logError) {
       console.error('Failed to log rate limit to MongoDB:', logError);
     }
@@ -174,6 +179,19 @@ io.on('connection', (socket: SocketWithUser) => {
   socket.on('chat_message', async (content: string) => {
     try {
       if (!socket.user || !content || typeof content !== 'string' || content.trim() === '') return;
+
+      if (mongoose.connection.readyState !== 1) {
+        console.warn('[Mongoose] Skipping ChatMessage save: MongoDB is not connected');
+        const temporaryMessage = {
+          senderId: socket.user.id,
+          senderName: socket.user.name,
+          senderAvatarUrl: socket.user.avatarUrl,
+          content: content.trim(),
+          createdAt: new Date().toISOString(),
+        };
+        io.emit('chat_message', temporaryMessage);
+        return;
+      }
 
       const savedMessage = await ChatMessage.create({
         senderId: socket.user.id,

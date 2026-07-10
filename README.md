@@ -1,118 +1,103 @@
-Final Advanced Full Stack Project: Collaborative Workspace Board 
-The new updates for final Project, TypeScript migrations, Zustand/React Query state integrations, Recharts dashboards, Docker setups and offline database fallback files have been pushed directly to the main branch of that same repository:
+# 🚀 Advanced Full-Stack Collaborative Workspace Board (Days 50–90)
 
-Web Live Link https://full-stack-integration-7m7z.onrender.com/ 
-https://full-stack-integration-7m7z.onrender.com/
-A premium, glassmorphic collaborative dashboard built to review and integrate Month 2 topics (Days 40 to 49) of the Full-Stack Developer curriculum.
-
-## 🚀 Month 2 Curriculum Covered
-1. **Days 40-41: Relational DBs with Prisma ORM (SQLite)**
-   - Configured with file-based SQLite by default to run out-of-the-box.
-   - Includes seed script creating preset users (`user@example.com`, `admin@example.com`) and sample collaborative tasks.
-2. **Day 42: Document DBs with Mongoose (MongoDB)**
-   - Utilizes `mongodb-memory-server` to spin up a local in-memory MongoDB automatically when starting the backend.
-   - Real-time chat messages and security audit logs are saved in MongoDB collections.
-3. **Days 43-44: JWT Authentication & Role-Based Access Control (RBAC)**
-   - JWT tokens stored in HTTP-only cookies and Bearer headers.
-   - Middleware handles route authorization. Admins have access to the special Security Audit tab.
-4. **Days 45-46: Multi-Part File Uploads, NodeMailer, & WebSockets**
-   - **Multer**: Dynamic file uploading for user avatars and task file attachments.
-   - **Nodemailer**: Automatic test HTML email dispatching (logs output to backend console if SMTP credentials aren't set).
-   - **Socket.io**: Real-time collaborative workspace synchronization (instant chat messaging, instant task movements).
-5. **Days 47-48: API Security, Zod Request Validation, & Error Handling**
-   - **Security**: Includes `helmet` header integration, `cors` cross-origin control, and `express-rate-limit` request throttling.
-   - **Validation**: Strict schema protection on auth registration, login, and task creation using `zod`.
-   - **Centralized Error Handler**: Standardized HTTP error formats. Breaches (rate limit alerts, server errors) are logged directly to MongoDB.
+### 🔗 Project Links
+* **Web Live URL**: [https://full-stack-integration-7m7z.onrender.com/](https://full-stack-integration-7m7z.onrender.com/)
+* **GitHub Repository**: [https://github.com/Charanloyal/Full-Stack-Integration](https://github.com/Charanloyal/Full-Stack-Integration)
 
 ---
 
-## 🛠️ Step-by-Step Setup
-
-### Prerequisites
-- [Node.js](https://nodejs.org) (v18 or higher recommended)
-- [Git](https://git-scm.com)
-
-### 1. Installation
-In the root directory, run the workspace install command to download all dependencies for both frontend and backend:
-```bash
-npm install
-npm run install:backend
-npm run install:frontend
-```
-
-### 2. Database Migrations and Seeding
-Initialize the SQLite database, apply migrations, generate the Prisma Client, and seed the user/task accounts:
-```bash
-npx prisma migrate dev --schema=backend/prisma/schema.prisma
-```
-This automatically executes `node prisma/seed.js`.
-
-### 3. Start Development Servers
-Start both the Express API and the Vite React app concurrently with a single command:
-```bash
-npm run dev
-```
-- **Backend API**: Running on [http://localhost:5000](http://localhost:5000)
-- **Frontend App**: Running on [http://localhost:5174](http://localhost:5174) (or fallback port if 5173 is busy)
+## 📖 Project Overview
+This project represents the complete, production-grade **Month 3 (Days 50 to 90) Final Project** for the Full-Stack Developer curriculum (IIT Madras Summer Internship progress milestones). It elevates the collaborative task dashboard into a strict, highly performant, and resilient **TypeScript monorepo** with advanced caching, state management, containerized deployment, and data visualization.
 
 ---
 
-## 👥 Dev Accounts (Preset Seeds)
-Sign in on the login page by clicking the direct "Dev Seeding Accounts" shortcuts, or enter them manually:
+## 🛠️ Month 3 (Days 50–90) Final Project Upgrades
 
-1. **Standard User**
-   - **Email**: `user@example.com`
-   - **Password**: `password123`
-2. **Administrator** (Full logs accessibility)
-   - **Email**: `admin@example.com`
-   - **Password**: `password123`
+### 1. Full-Stack TypeScript Migration (Days 50–51)
+* **Backend**: Ported the entire Express REST & WebSocket server to TypeScript (`.ts`). Configured strict schemas, interfaces for Prisma/Mongoose models, and extended Express request handlers (`Express.Request.user`).
+* **Frontend**: Ported all React components, contexts, and entry points to TypeScript (`.tsx`) with compile-time type checks.
+
+### 2. State Management — Zustand & React Query (Days 54–55)
+* **Zustand**: Created a global client store (`useUIStore.ts`) to manage active viewport tabs, search terms, assignee selectors, and priority filtering states.
+* **TanStack Query (React Query)**: Integrated to handle all server-state queries and mutations. Enabled automatic query cache invalidations on task creations, edits, checkbox status updates, and deletions for seamless real-time syncing.
+
+### 3. Containerization & DevOps CI/CD (Days 57–60)
+* **Dockerfile.backend**: Multi-stage production container compiling TypeScript files via `tsc` and running a stripped-down runtime environment.
+* **Dockerfile.frontend**: Multi-stage build compiling React client static assets and hosting them via an Nginx alpine container.
+* **docker-compose.yml**: Orchestrates frontend, backend, MongoDB, and Redis containers with persistent volumes.
+* **GitHub Actions**: Configured `.github/workflows/ci.yml` pipeline that automatically tests, compiles, and type-checks the codebases on every branch push.
+
+### 4. Caching System — Redis Cache Broker (Day 63)
+* **Redis Caching**: Implemented a caching layer (`redisService.ts`) for fetching task listings. Clear-cache triggers invalidate task keys on any database mutations.
+* **In-Memory Fallback**: Programmed a transparent in-memory `Map` caching mechanism if the Redis server is offline, enabling zero-setup portable execution.
+
+### 5. Recharts Analytics Dashboard & Subtasks (Weeks 10–11)
+* **Analytics Panel**: Integrated Recharts to display visual metrics, including status distributions (Donut charts), priority level weights (Bar charts), and workload per team member (Stacked Bar charts).
+* **Subtasks Checklist**: Integrated interactive checklist subtasks directly on task cards. Toggling checkboxes instantly updates state persistence on the database.
+
+### 6. Resilience Engineering — Offline Backups (Week 12)
+* **Graceful Degradation**: Programmed Mongoose offline connectivity checks (`jsonDbService.ts`). If MongoDB is offline, chat messages and audit trails automatically write to local JSON files, maintaining **100% application functionality** with no buffering timeouts.
 
 ---
 
 ## 🏗️ Folder Structure
 ```
 month2-fullstack-integration/
-├── backend/                  # Express REST & WebSocket Server
-│   ├── prisma/               # Schema & SQLite Migrations
-│   ├── public/uploads/       # Local upload directory for avatars/attachments
+├── .github/workflows/        # GitHub Actions CI/CD Pipeline
+├── backend/                  # Express REST & WebSocket Server (TS)
+│   ├── prisma/               # SQLite Schemas & Migrations
+│   ├── public/uploads/       # File Upload Storage (Avatars, Attachments)
 │   ├── src/
-│   │   ├── controllers/      # Route logic (Auth, Tasks, Chats, Admin, Upload)
-│   │   ├── db/               # Prisma (SQLite) & Mongoose (Mongo) connection bootstrap
-│   │   ├── middleware/       # Auth guard, Multer configs, error handlers, Zod validators
-│   │   ├── models/           # Mongoose Document schemas (Chat, SecurityLog)
-│   │   ├── routes/           # Endpoint registries
-│   │   └── services/         # Socket.io config & Nodemailer service
-│   └── src/index.js          # API main script
-├── frontend/                 # Vite + React Client App
+│   │   ├── controllers/      # Route Handlers (Task, Auth, Chat, Admin)
+│   │   ├── db/               # Prisma & Mongoose bootstrappers
+│   │   ├── middleware/       # Auth guards, Multer limits, validators
+│   │   ├── models/           # Mongoose Models (ChatMessage, SecurityLog)
+│   │   ├── routes/           # REST Router registries
+│   │   ├── services/         # Socket.io & Nodemailer configurations
+│   │   ├── types/            # Entity models & Express declarations
+│   │   └── index.ts          # Server entrypoint
+│   └── tsconfig.json         # Backend TS compiler rules
+├── frontend/                 # Vite + React Client App (TS)
 │   ├── src/
-│   │   ├── components/       # KanbanBoard, ChatWindow, ProfilePanel, AdminLogsPanel
-│   │   ├── context/          # Auth context, WebSocket connections context
-│   │   ├── App.jsx           # Tab routing and core dashboard layout
-│   │   └── index.css         # Glassmorphic Dark styling framework
-├── docker-compose.yml        # Optional reference PostgreSQL & MongoDB orchestrator
-└── package.json              # Monorepo task command runner
+│   │   ├── components/       # KanbanBoard, ChatWindow, AnalyticsDashboard
+│   │   ├── context/          # Auth and WebSocket client providers
+│   │   ├── store/            # Zustand global UI filter store
+│   │   ├── App.tsx           # Layout, Tab routing, and Auth states
+│   │   └── main.tsx          # QueryClientProvider bootstrapper
+│   └── tsconfig.json         # Frontend Bundler TS configuration
+├── Dockerfile.backend        # Multi-stage Express Docker image
+├── Dockerfile.frontend       # Multi-stage Nginx React Docker image
+├── docker-compose.yml        # Orchestration script (Services + DBs)
+└── package.json              # Monorepo task command scripts
 ```
 
 ---
 
-## ☁️ Zero-Setup One-Click Cloud Deployment (Render)
-You can deploy this entire full-stack project online for free with **zero configuration**:
-1. Log in to your **[Render.com](https://render.com/)** dashboard.
-2. Click **New +** ➔ **Blueprint**.
-3. Connect your GitHub repository: `Full-Stack-Integration`.
-4. Render will read the `render.yaml` blueprint, install dependencies, compile the React frontend, generate the Prisma Client, run the SQLite migrations, configure the in-memory MongoDB Server, and deploy your live full-stack application!
+## 🛠️ Step-by-Step Local Setup
+
+### 1. Installation
+Install all root, backend, and frontend dependencies:
+```bash
+npm run install-all
+```
+
+### 2. Database Synchronization
+Create SQLite database file, generate Prisma client, and run seeding:
+```bash
+npm run db:push --prefix backend
+```
+
+### 3. Start Development Environment
+Launch both development servers concurrently:
+```bash
+npm run dev
+```
+* **Frontend Web App**: `http://localhost:5173/`
+* **Backend REST API**: `http://localhost:5000/`
 
 ---
 
-## 🐳 Optional Production Setup (PostgreSQL & MongoDB in Docker)
-If you wish to switch from the development zero-setup databases (SQLite & in-memory Mongo) to production-ready database engines:
-1. Open the Docker Desktop application.
-2. Spin up the Postgres and MongoDB containers:
-   ```bash
-   docker compose up -d
-   ```
-3. Update `backend/.env` environment variables:
-   - Change `DATABASE_URL` to point to PostgreSQL: `"postgresql://postgres:postgrespassword@localhost:5432/month2_relational?schema=public"`
-   - Set `MONGO_URI` to: `"mongodb://admin:adminpassword@localhost:27017/month2_chat?authSource=admin"`
-4. Switch Prisma schema provider to `"postgresql"` inside [schema.prisma](file:///C:/Users/Windows-E/.gemini/antigravity-ide/scratch/month2-fullstack-integration/backend/prisma/schema.prisma).
-5. Apply migrations and generate the client again.
+## 👥 Preset Seed Accounts
+Log in by clicking the direct seed shortcuts on the login screen or type:
+1. **Standard User**: `user@example.com` / `password123`
+2. **Administrator**: `admin@example.com` / `password123` (Access to Security Audit logs)
